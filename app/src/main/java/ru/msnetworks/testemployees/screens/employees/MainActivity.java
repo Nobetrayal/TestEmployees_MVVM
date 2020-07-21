@@ -1,6 +1,9 @@
 package ru.msnetworks.testemployees.screens.employees;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModel;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -21,11 +24,11 @@ import ru.msnetworks.testemployees.api.ApiService;
 import ru.msnetworks.testemployees.pojo.Employee;
 import ru.msnetworks.testemployees.pojo.EmployeeResponse;
 
-public class MainActivity extends AppCompatActivity implements EmployeesListView{
+public class MainActivity extends AppCompatActivity {
 
     private RecyclerView recyclerViewEmployees;
     private EmployeeAdapter adapter;
-    private EmployeeListPresenter presenter;
+    private EmployeeViewModel employeeViewModel;
 
 
     @Override
@@ -33,7 +36,6 @@ public class MainActivity extends AppCompatActivity implements EmployeesListView
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        presenter = new EmployeeListPresenter(this);
 
         recyclerViewEmployees = findViewById(R.id.recyclerViewEmployees);
 
@@ -41,26 +43,30 @@ public class MainActivity extends AppCompatActivity implements EmployeesListView
         adapter.setEmployees(new ArrayList<Employee>());
         recyclerViewEmployees.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewEmployees.setAdapter(adapter);
-        presenter.loadData();
+
+        employeeViewModel = new ViewModelProvider(this).get(EmployeeViewModel.class);
+        employeeViewModel.getEmployees().observe(this, new Observer<List<Employee>>() {
+            @Override
+            public void onChanged(List<Employee> employees) {
+                adapter.setEmployees(employees);
+            }
+        });
+
+
+        employeeViewModel.getErrors().observe(this, new Observer<Throwable>() {
+            @Override
+            public void onChanged(Throwable throwable) {
+                if (throwable != null) {
+                    Toast.makeText(MainActivity.this, "error", Toast.LENGTH_SHORT).show();
+                    employeeViewModel.clearError();
+                }
+                }
+
+        });
+
+        employeeViewModel.loadData();
 
     }
 
-    public void showData(List<Employee> employees) {
 
-        adapter.setEmployees(employees);
-    }
-
-    public void showError(Throwable throwable) {
-
-        Toast.makeText(this, throwable.getMessage(), Toast.LENGTH_SHORT).show();
-
-    }
-
-    @Override
-    protected void onDestroy() {
-        presenter.disposeDisposable();
-        super.onDestroy();
-
-
-    }
 }
